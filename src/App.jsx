@@ -3,7 +3,7 @@ import './App.css'
 
 // Auth API (Spring). Default: Railway backend; set VITE_API_URL in .env to override (e.g. http://localhost:8080 for local dev).
 const AUTH_API_DEFAULT = 'https://floodreliefbackend-production.up.railway.app'
-const API_BASE = (import.meta.env.VITE_API_URL ?? AUTH_API_DEFAULT).replace(/\/$/, '')
+const API_BASE = (import.meta.env.VITE_API_URL || AUTH_API_DEFAULT).replace(/\/$/, '')
 // Prediction API (FastAPI/Python): VITE_PREDICTION_API_URL in .env → e.g. http://localhost:8000
 const PREDICTION_API_BASE = (import.meta.env.VITE_PREDICTION_API_URL || '').replace(/\/$/, '')
 
