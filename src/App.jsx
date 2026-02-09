@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import './App.css'
 
-// Auth API (Spring): VITE_API_URL in .env → e.g. http://localhost:8080
-const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+// Auth API (Spring). Default: Railway backend; set VITE_API_URL in .env to override (e.g. http://localhost:8080 for local dev).
+const AUTH_API_DEFAULT = 'https://floodreliefbackend-production.up.railway.app'
+const API_BASE = (import.meta.env.VITE_API_URL ?? AUTH_API_DEFAULT).replace(/\/$/, '')
 // Prediction API (FastAPI/Python): VITE_PREDICTION_API_URL in .env → e.g. http://localhost:8000
 const PREDICTION_API_BASE = (import.meta.env.VITE_PREDICTION_API_URL || '').replace(/\/$/, '')
 
@@ -153,11 +154,6 @@ function App() {
         setAuthError('Password should be at least 6 characters.')
         return
       }
-    }
-
-    if (!API_BASE) {
-      setAuthError('Auth API URL is not set. Add VITE_API_URL to your .env (e.g. http://localhost:8080).')
-      return
     }
 
     setAuthLoading(true)
