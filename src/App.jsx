@@ -238,6 +238,7 @@ function App() {
 
     setAuthLoading(true)
     try {
+      // POST /validatelogin or /makenewuser, Content-Type: application/json, body: { username, password }
       const url = authMode === 'signup'
         ? `${API_BASE}/makenewuser`
         : `${API_BASE}/validatelogin`
@@ -375,7 +376,7 @@ function App() {
             <span>Relief Estimate</span>
           </a>
           <nav className="nav">
-            <a href="#estimate">Get estimate</a>
+            <a href="#estimate">Get AI estimate</a>
             <a href="#how">How it works</a>
             <span className="nav-user">
               <span className="nav-username">{user.username}</span>
@@ -391,17 +392,17 @@ function App() {
         <section className="hero" aria-labelledby="hero-title">
           <div className="hero-bg" aria-hidden />
           <div className="hero-content">
-            <p className="hero-badge">Powered by public disaster data</p>
+            <p className="hero-badge">AI-powered · Built on public disaster data</p>
             <h1 id="hero-title" className="hero-title">
               Know your rights.<br />
               <span className="hero-title-accent">Estimate your relief.</span>
             </h1>
             <p className="hero-desc">
-              Use publicly available hurricane and flood data to see a realistic range of
-              compensation for your losses. Free, private, and based on declared disasters.
+              Our AI uses publicly available hurricane and flood data to generate a realistic
+              compensation estimate for your losses. Free, private, and based on declared disasters.
             </p>
             <a href="#estimate" className="hero-cta">
-              Get your estimate
+              Get your AI estimate
             </a>
           </div>
           <div className="hero-visual">
@@ -413,10 +414,10 @@ function App() {
 
         <section id="estimate" className="section estimate-section">
           <div className="section-inner">
-            <h2 className="section-title">Compensation estimate</h2>
+            <h2 className="section-title">AI compensation estimate</h2>
             <p className="section-desc">
-              Select your disaster and loss details. Estimates are indicative and based on
-              historical payouts for similar declared events.
+              Enter your loss details below. Our machine learning model analyzes your inputs and
+              historical payouts to produce an indicative estimate for similar declared events.
             </p>
 
             <form className="estimate-form" onSubmit={handleSubmit}>
@@ -506,7 +507,7 @@ function App() {
               {submitted && hasRequired ? (
                 <div className="result-card" role="status">
                   <div className="result-header">
-                    <span className="result-label">Model prediction</span>
+                    <span className="result-label">AI prediction</span>
                     <button type="button" className="result-reset" onClick={handleReset}>
                       Edit inputs
                     </button>
@@ -521,12 +522,12 @@ function App() {
                     </p>
                   )}
                   <p className="result-note">
-                    Based on your water depth, duration, cause of damage, and flood event. Actual relief depends on program rules and eligibility.
+                    This AI-generated estimate is based on your water depth, duration, cause of damage, and flood event. Actual relief depends on program rules and eligibility.
                   </p>
                 </div>
               ) : (
                 <button type="submit" className="submit-btn" disabled={!hasRequired || predictionLoading}>
-                  {predictionLoading ? 'Calculating…' : 'Calculate estimate'}
+                  {predictionLoading ? 'AI calculating…' : 'Get AI estimate'}
                 </button>
               )}
             </form>
@@ -539,25 +540,25 @@ function App() {
             <div className="how-grid">
               <article className="how-card">
                 <div className="how-num">1</div>
-                <h3>Public data</h3>
+                <h3>Data + AI</h3>
                 <p>
-                  We use FEMA declarations, NOAA storm data, and published relief
-                  statistics—all publicly available.
+                  Our AI is trained on FEMA declarations, NOAA storm data, and published relief
+                  statistics—all publicly available sources.
                 </p>
               </article>
               <article className="how-card">
                 <div className="how-num">2</div>
                 <h3>Your inputs</h3>
                 <p>
-                  You provide water depth, flood water duration, cause of damage, and flood event. Nothing is stored or shared until you submit.
+                  You provide water depth, duration, cause of damage, and flood event. The model uses these to generate your estimate—nothing is stored until you submit.
                 </p>
               </article>
               <article className="how-card">
                 <div className="how-num">3</div>
-                <h3>Estimate range</h3>
+                <h3>AI estimate</h3>
                 <p>
-                  We show a plausible compensation range based on historical payout patterns
-                  for similar cases.
+                  We return a machine learning–driven compensation estimate based on patterns
+                  in historical payouts for similar cases.
                 </p>
               </article>
             </div>
@@ -568,7 +569,7 @@ function App() {
           <div className="footer-inner">
             <p className="footer-brand">Relief Estimate</p>
             <p className="footer-disclaimer">
-              Estimates are for informational purposes only. They do not guarantee
+              AI-generated estimates are for informational purposes only. They do not guarantee
               eligibility or payment. Always consult official sources and apply through
               authorized programs.
             </p>
