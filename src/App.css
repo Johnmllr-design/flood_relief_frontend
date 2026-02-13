@@ -511,6 +511,14 @@ select.field-input {
   padding-right: 2.75rem;
 }
 
+select.field-select-scroll {
+  height: auto;
+  min-height: 10rem;
+  overflow-y: auto;
+  padding-right: var(--space-lg);
+  background-image: none;
+}
+
 .submit-btn {
   width: 100%;
   padding: var(--space-md) var(--space-xl);

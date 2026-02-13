@@ -1,22 +1,15 @@
 import { useState } from 'react'
 import './App.css'
 
-// Auth API (Spring). Default: Railway backend; set VITE_API_URL in .env to override (e.g. http://localhost:8080 for local dev).
+// Auth API (Spring). Default: Railway production; set VITE_API_URL in .env to override (e.g. http://localhost:8080 for local).
 const AUTH_API_DEFAULT = 'https://floodreliefbackend-production.up.railway.app'
 const API_BASE = (import.meta.env.VITE_API_URL || AUTH_API_DEFAULT).replace(/\/$/, '')
-// Prediction API (FastAPI/Python): VITE_PREDICTION_API_URL in .env → e.g. http://localhost:8000
-const PREDICTION_API_BASE = (import.meta.env.VITE_PREDICTION_API_URL || '').replace(/\/$/, '')
+// Prediction API (FastAPI/Python). Default: Railway production; set VITE_PREDICTION_API_URL to override (e.g. http://localhost:8000 for local).
+const PREDICTION_API_DEFAULT = 'https://floodreliefprediction-production.up.railway.app'
+const PREDICTION_API_BASE = (import.meta.env.VITE_PREDICTION_API_URL || PREDICTION_API_DEFAULT).replace(/\/$/, '')
 
 // Map cause-of-damage codes to numeric string for FastAPI (backend uses float(causeOfDamage))
 const CAUSE_CODE_TO_NUMERIC = { '0': '0', '1': '1', '2': '2', '3': '3', '4': '4', '7': '7', '8': '8', '9': '9', 'A': '10', 'B': '11', 'C': '12', 'D': '13' }
-
-const STORMS = [
-  { id: 'helene', name: 'Hurricane Helene (2024)', region: 'Southeast' },
-  { id: 'milton', name: 'Hurricane Milton (2024)', region: 'Florida' },
-  { id: 'ian', name: 'Hurricane Ian (2022)', region: 'Florida' },
-  { id: 'ida', name: 'Hurricane Ida (2021)', region: 'Gulf Coast' },
-  { id: 'other', name: 'Other declared disaster', region: 'Varies' },
-]
 
 // Cause of damage: value : description (multiple can be selected).
 // Codes 7 and 8 only if date of loss is prior to September 23, 1995.
@@ -35,6 +28,104 @@ const CAUSE_OF_DAMAGE_OPTIONS = [
   { value: 'D', label: 'Expedited claim handling process by Adjusting Process Pilot Program (Remote Adjustment)' },
 ]
 
+// Flood events (keys from backend dictionary). Value "None" maps to Python None.
+const FLOOD_EVENT_OPTIONS = [
+  { value: 'None', label: 'Not specified' },
+  '2021 Mid-Spring Severe Storms',
+  '2025 July NYC Metro Area Flooding',
+  "April 2007 Nor'easter",
+  'Blizzard of 1993',
+  'California Atmospheric River',
+  'Central U.S. April Flooding',
+  "December Nor'easter",
+  "December Storm - Nor'easter",
+  'Early summer severe storms',
+  'Early summer storms',
+  'Early winter storms',
+  'February Kentucky Flooding',
+  'Flooding',
+  'Heavy rains',
+  'Hurricane Alicia',
+  'Hurricane Allen',
+  'Hurricane Andrew',
+  'Hurricane Bertha',
+  'Hurricane Bob',
+  'Hurricane Bonnie',
+  'Hurricane Beryl',
+  'Hurricane Cindy',
+  'Hurricane Debby',
+  'Hurricane Dennis',
+  'Hurricane Elena',
+  'Hurricane Elsa',
+  'Hurricane Frances',
+  'Hurricane Francine',
+  'Hurricane Fran',
+  'Hurricane Frederic',
+  'Hurricane Floyd',
+  'Hurricane Georges',
+  'Hurricane Georges (Keys)',
+  'Hurricane Gloria',
+  'Hurricane Gustav',
+  'Hurricane Harvey',
+  'Hurricane Helene',
+  'Hurricane Hermine',
+  'Hurricane Hugo',
+  'Hurricane Ian',
+  'Hurricane Ida',
+  'Hurricane Ike',
+  'Hurricane Irene',
+  'Hurricane Isaac',
+  'Hurricane Isaias',
+  'Hurricane Isabel',
+  'Hurricane Ivan',
+  'Hurricane Jeanne',
+  'Hurricane Josephine',
+  'Hurricane Juan',
+  'Hurricane Katrina',
+  'Hurricane Matthew',
+  'Hurricane Milton',
+  'Hurricane Nicole',
+  'Hurricane Opal',
+  'Hurricane Rita',
+  'Hurricane Sally',
+  'Hurricane Sandy',
+  'Hurricane Wilma',
+  'Hurricane Zeta',
+  'Hurricane Irma',
+  'June South Florida Flooding',
+  'Late spring storms',
+  'Late summer storms',
+  'Late winter severe storms',
+  "March 2010 Nor'easter",
+  'March storm',
+  'Mid-Winter California Flooding',
+  'Midwest Flooding',
+  'Mid-summer severe storms',
+  'Not a named storm',
+  'October severe storms',
+  'Pineapple Express - Southern',
+  'Spring severe storms',
+  'Spring storm',
+  'Storm',
+  'The "Halloween" Storm',
+  'Thunderstorms',
+  'Torrential rain',
+  'Tropical Storm Allison',
+  'Tropical Storm Barry',
+  'Tropical Storm Claudette',
+  'Tropical Storm Debby',
+  'Tropical Storm Erin',
+  'Tropical Storm Ernesto',
+  'Tropical Storm Fay',
+  'Tropical Storm Imelda',
+  'Tropical Storm Isidore',
+  'Tropical Storm Ivan',
+  'Tropical Storm Lee',
+  'Tropical Storm Paul',
+  'Winter storm',
+  'Winter Storm Jonas',
+]
+
 function App() {
   const [user, setUser] = useState(null)
   const [authMode, setAuthMode] = useState('login') // 'login' | 'signup'
@@ -44,61 +135,46 @@ function App() {
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
 
-  const [storm, setStorm] = useState('')
   const [waterDepth, setWaterDepth] = useState('')
   const [floodWaterDuration, setFloodWaterDuration] = useState('')
-  const [causeOfDamage, setCauseOfDamage] = useState([])
-  const [event, setEvent] = useState('')
-  const [estimatedLoss, setEstimatedLoss] = useState('')
+  const [causeOfDamage, setCauseOfDamage] = useState('')
+  const [floodEvent, setFloodEvent] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [predictionInference, setPredictionInference] = useState(null)
   const [predictionLoading, setPredictionLoading] = useState(false)
   const [predictionError, setPredictionError] = useState(null)
 
-  const estimatedLossNum = parseFloat(estimatedLoss) || 0
   const hasRequired =
-    storm &&
     waterDepth.trim() &&
     floodWaterDuration.trim() &&
-    causeOfDamage.length > 0 &&
-    event.trim()
-  const hasInput = hasRequired && estimatedLossNum > 0
-
-  // Simplified illustrative estimate (replace with real data integration)
-  const lowEstimate = Math.round(estimatedLossNum * 0.15)
-  const highEstimate = Math.round(estimatedLossNum * 0.45)
-  const formattedLow = lowEstimate.toLocaleString()
-  const formattedHigh = highEstimate.toLocaleString()
-
-  function toggleCauseOfDamage(value) {
-    setCauseOfDamage((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    )
-  }
+    causeOfDamage &&
+    floodEvent.trim()
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!hasRequired) return
     setPredictionError(null)
 
-    if (!PREDICTION_API_BASE) {
-      setPredictionError('Prediction API URL is not set. Add VITE_PREDICTION_API_URL to your .env (e.g. http://localhost:8000).')
-      return
-    }
-
     setPredictionLoading(true)
     try {
-      const causeStr = causeOfDamage.length > 0
-        ? (CAUSE_CODE_TO_NUMERIC[causeOfDamage[0]] ?? causeOfDamage[0])
-        : '0'
+      const waterDepthNum = parseFloat(waterDepth.trim())
+      const floodWaterDurationNum = parseFloat(floodWaterDuration.trim())
+      const causeNum = causeOfDamage
+        ? parseFloat(CAUSE_CODE_TO_NUMERIC[causeOfDamage] ?? causeOfDamage)
+        : 0
+      if (Number.isNaN(waterDepthNum) || Number.isNaN(floodWaterDurationNum) || Number.isNaN(causeNum)) {
+        setPredictionError('Please enter valid numbers for water depth and flood water duration.')
+        setPredictionLoading(false)
+        return
+      }
       const res = await fetch(`${PREDICTION_API_BASE}/prediction`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          waterDepth: waterDepth.trim(),
-          floodWaterDuration: floodWaterDuration.trim(),
-          causeOfDamage: causeStr,
-          floodEvent: event.trim(),
+          waterDepth: waterDepthNum,
+          floodWaterDuration: floodWaterDurationNum,
+          causeOfDamage: causeNum,
+          floodEvent: floodEvent.trim(),
         }),
       })
       const text = await res.text()
@@ -118,7 +194,13 @@ function App() {
         setPredictionError('Prediction API did not return an inference.')
       }
     } catch (err) {
-      setPredictionError(err.message || 'Prediction request failed.')
+      const msg = err?.message || ''
+      const isNetworkError = msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('Load failed')
+      setPredictionError(
+        isNetworkError
+          ? 'Could not reach the prediction API. Check your connection or set VITE_PREDICTION_API_URL for local dev.'
+          : (msg || 'Prediction request failed.')
+      )
     } finally {
       setPredictionLoading(false)
     }
@@ -128,12 +210,10 @@ function App() {
     setSubmitted(false)
     setPredictionInference(null)
     setPredictionError(null)
-    setStorm('')
     setWaterDepth('')
     setFloodWaterDuration('')
-    setCauseOfDamage([])
-    setEvent('')
-    setEstimatedLoss('')
+    setCauseOfDamage('')
+    setFloodEvent('')
   }
 
   async function handleAuthSubmit(e) {
@@ -187,7 +267,14 @@ function App() {
         setAuthError('Invalid username or password.')
       }
     } catch (err) {
-      setAuthError(err.message || 'Unable to reach the server. Please check your connection and try again.')
+      const msg = err?.message || ''
+      const isNetworkError = msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('Load failed')
+      const apiHint = ` (${authMode === 'signup' ? 'makenewuser' : 'validatelogin'} → ${API_BASE})`
+      setAuthError(
+        isNetworkError
+          ? `Could not reach the auth server.${apiHint} If the backend is up, this is usually CORS: your Spring app must allow your frontend origin (e.g. your Vercel URL). Check the browser Console for "CORS" errors.`
+          : (msg || 'Unable to reach the server. Please check your connection and try again.')
+      )
     } finally {
       setAuthLoading(false)
     }
@@ -335,23 +422,6 @@ function App() {
             <form className="estimate-form" onSubmit={handleSubmit}>
               <div className="form-grid">
                 <label className="field">
-                  <span className="field-label">Declared disaster</span>
-                  <select
-                    value={storm}
-                    onChange={(e) => setStorm(e.target.value)}
-                    className="field-input"
-                    required
-                  >
-                    <option value="">Select storm or event</option>
-                    {STORMS.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} — {s.region}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="field">
                   <span className="field-label">Water depth (feet)</span>
                   <input
                     type="text"
@@ -380,16 +450,18 @@ function App() {
                 <div className="field field-full">
                   <span className="field-label">Cause of damage</span>
                   <p className="field-hint">
-                    How the property and contents were damaged. Select all that apply.
+                    How the property and contents were damaged. Select one.
                     Codes 7 and 8 apply only if date of loss is before September 23, 1995.
                   </p>
-                  <div className="cause-checkboxes" role="group" aria-label="Cause of damage">
+                  <div className="cause-checkboxes" role="radiogroup" aria-label="Cause of damage">
                     {CAUSE_OF_DAMAGE_OPTIONS.map((opt) => (
                       <label key={opt.value} className="cause-checkbox">
                         <input
-                          type="checkbox"
-                          checked={causeOfDamage.includes(opt.value)}
-                          onChange={() => toggleCauseOfDamage(opt.value)}
+                          type="radio"
+                          name="causeOfDamage"
+                          value={opt.value}
+                          checked={causeOfDamage === opt.value}
+                          onChange={() => setCauseOfDamage(opt.value)}
                         />
                         <span className="cause-checkbox-label">
                           <strong>{opt.value}</strong> — {opt.label}
@@ -397,36 +469,34 @@ function App() {
                       </label>
                     ))}
                   </div>
-                  {causeOfDamage.length > 0 && (
+                  {causeOfDamage && (
                     <p className="field-selected">
-                      Selected: {causeOfDamage.join(', ')}
+                      Selected: {causeOfDamage}
                     </p>
                   )}
                 </div>
 
                 <label className="field field-full">
-                  <span className="field-label">Describe the event</span>
-                  <textarea
-                    placeholder="Describe the flooding or disaster event, when it occurred, and any relevant details..."
-                    value={event}
-                    onChange={(e) => setEvent(e.target.value)}
-                    className="field-input field-textarea"
-                    rows={4}
+                  <span className="field-label">Flood event</span>
+                  <select
+                    value={floodEvent}
+                    onChange={(e) => setFloodEvent(e.target.value)}
+                    className="field-input field-select-scroll"
+                    size={8}
                     required
-                  />
-                </label>
-
-                <label className="field field-full">
-                  <span className="field-label">Estimated total loss (USD, optional)</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="100"
-                    placeholder="e.g. 50000 — for compensation range only"
-                    value={estimatedLoss}
-                    onChange={(e) => setEstimatedLoss(e.target.value)}
-                    className="field-input"
-                  />
+                    aria-label="Flood event"
+                  >
+                    <option value="">Select flood event</option>
+                    {FLOOD_EVENT_OPTIONS.map((opt) => {
+                      const value = typeof opt === 'string' ? opt : opt.value
+                      const label = typeof opt === 'string' ? opt : opt.label
+                      return (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      )
+                    })}
+                  </select>
                 </label>
               </div>
 
@@ -436,9 +506,7 @@ function App() {
               {submitted && hasRequired ? (
                 <div className="result-card" role="status">
                   <div className="result-header">
-                    <span className="result-label">
-                      {predictionInference != null ? 'Model prediction' : estimatedLossNum > 0 ? 'Estimated compensation range' : 'Details submitted'}
-                    </span>
+                    <span className="result-label">Model prediction</span>
                     <button type="button" className="result-reset" onClick={handleReset}>
                       Edit inputs
                     </button>
@@ -452,18 +520,8 @@ function App() {
                           : String(predictionInference)}
                     </p>
                   )}
-                  {estimatedLossNum > 0 && (
-                    <p className="result-range">
-                      <strong>${formattedLow}</strong> – <strong>${formattedHigh}</strong>
-                      <span className="result-range-label"> (illustrative range)</span>
-                    </p>
-                  )}
                   <p className="result-note">
-                    {predictionInference != null
-                      ? 'Model prediction is based on your water depth, duration, cause of damage, and event. Actual relief depends on program rules and eligibility.'
-                      : estimatedLossNum > 0
-                        ? 'Actual relief depends on program rules, documentation, and eligibility.'
-                        : 'Add an estimated total loss and click “Edit inputs” then “Calculate estimate” to see an illustrative range.'}
+                    Based on your water depth, duration, cause of damage, and flood event. Actual relief depends on program rules and eligibility.
                   </p>
                 </div>
               ) : (
@@ -491,8 +549,7 @@ function App() {
                 <div className="how-num">2</div>
                 <h3>Your inputs</h3>
                 <p>
-                  You provide disaster, water depth, duration, cause of damage, and event
-                  description. Nothing is stored or shared until you submit.
+                  You provide water depth, flood water duration, cause of damage, and flood event. Nothing is stored or shared until you submit.
                 </p>
               </article>
               <article className="how-card">
